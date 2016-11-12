@@ -4,6 +4,7 @@
 #if yes it is saved in the \watches directory with a watch_randomnb file name
 #else it is saved in the \notwatch directory
 #the model is trained with images found in \dataset directory
+#[12-11-2016] Saved additional scraped data in a csv file in the watches directory
 #TO DO: use the descriptor object in the descriptorWatches.py file
 #TO DO: use the progressbar object (cf example in indexwatchescaltalog.py
 #TO DO: tell when finished
@@ -14,26 +15,46 @@ import datetime
 from hog import HOG
 from skimage import feature
 from sklearn.ensemble import RandomForestClassifier
+#[12-11-2016] scraped data
+from redis import Redis
+import csv
 
 
 class isThatAWatch:
-    def __init__(self, image):
+    def __init__(self, pathImage):
         self.savedWatchPath = str(directoryWatches)+"_"
         self.savedNotWatchPath = str(directoryNotWatches)+"_"
         #load the image and call the model to define if it is a watch or not
-        imageToRecognize=cv2.imread(image)
+        imageToRecognize=cv2.imread(pathImage)
         features=describe(imageToRecognize)
         prediction=model.predict(features.reshape(1,-1))[0]
 
         if prediction == WATCH: #save it to the watch directory
             fileName=str(self.savedWatchPath)+"watch_"+str(datetime.datetime.now())[20:]+".jpg"
             cv2.imwrite(fileName, imageToRecognize)
+
+            #[22-11-2016]-Scraped Data
+            #get the additional data from the redis with key = pathImage
+            REDIS_PORT = 6379 
+            ASIN_POS = 0 #Scraped data: location in the redisDB of the ASI
+            redisDB = Redis(host="localhost", port=REDIS_PORT, db=0, charset="utf-8", decode_responses=True)
+            key = "path:{}".format(pathImage)
+            redisData = redisDB.lrange(key, 0, -1)
+            asinCSV = redisData[ASIN_POS]
+            csvFile=open(str(directoryWatches)+"images.csv", 'a+', newline='') #append to the file and create it if needed
+            outputWriter = csv.writer(csvFile)
+            outputWriter.writerow([fileName, asinCSV])
+            #cleanup
+            redisDB.delete(key) #delete the key now useless
+            csvFile.close()
+            #[22-11-2016]-Scraped Data
             print("[INFO] Stored watch in: "+fileName)
         elif prediction == NOTWATCH: #save it to the notwatch directory
             fileName=str(self.savedNotWatchPath)+"notwatch_"+str(datetime.datetime.now())[20:]+".jpg"
             cv2.imwrite(fileName, imageToRecognize)
             print("[INFO] Stored not_watch in: "+fileName)
-            
+
+   
 def initializeRandomForest():
     #this function willtrain a randomforest and return the corresponding model
     print("[INFO] extracting features...")
@@ -74,6 +95,7 @@ def describe(image):
     #return np.hstack([colorStats, haralick])
     return hog
 
+
 # 1.0 --- initialize some variables
 basePath="D:/Users/olivi/ComputerVision/amazonScraper"
 directoryDataset = Path(basePath+"/dataset")
@@ -87,7 +109,10 @@ HOG_CELLS = (4,4)
 STANDARD_SIZE = (190, 246) #new size of individual digit
 WATCH = 'watch'
 NOTWATCH = 'notwatch'
+
+
 model=initializeRandomForest()
+
 
 listOfImages=list(directoryRawImages.glob('**/*.jpg'))
 

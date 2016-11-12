@@ -27,8 +27,7 @@ url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=citizen
 directoryImages = Path("D:/Users/olivi/ComputerVision/amazonScraper/rawImages/_")
 NB_PAGES_TO_DOWNLOAD = 1
 REDIS_PORT = 6379
-PATH_POS = 0 #location in the redisDB of the path
-ASIN_POS = 1 #location in the redisDB of the ASIN
+ASIN_POS = 0 #location in the redisDB of the ASIN
 
 
 #the following function get an url and return the request object
@@ -60,7 +59,7 @@ def saveImageToDisk(index, soupObject, redisPipeline):
     selector = "#result_"+str(index)+" > div > div.a-row.a-spacing-base > div > div > a > img"
     asinSelector = "#result_"+str(index)
     asin = 'NA'
-    path = 'NA'
+    pathImage = 'NA'
     pictureUrl= ""
 
     #Extract the ASIN
@@ -87,8 +86,8 @@ def saveImageToDisk(index, soupObject, redisPipeline):
         imageFile.close()
 
     #store the image path and corresponding ASIN in the redis pipeline
-    if asin != 'NA' and asinSelector != 'NA':
-        redisPipeline.rpush("path:{}".format(pictureUrl[49:60]), pathImage, asin)
+    if asin != 'NA' and pathImage!= 'NA':
+        redisPipeline.rpush("path:{}".format(pathImage), asin)
         #better to encode otherwize there is a 'b' coming before in the file
         #source: http://stackoverflow.com/questions/25745053/about-char-b-prefix-in-python3-4-1-client-connect-to-redis
 
@@ -98,21 +97,6 @@ def getNextPage():
     element = soup.select(selector)
     url = "https://www.amazon.fr"+element[0].get('href')
     return(url)
-
-def saveScrapedPageToCSV(redisDB):
-    #source for CSV: page 322 automate boring stuff in python
-    csvFile=open(str(directoryImages)+"images.csv", 'a+', newline='') #append to the file and create it if needed
-    outputWriter = csv.writer(csvFile)
-    #loop in the redisDB and store the page scraped data in the CSV file
-    for key in redisDB.scan_iter("path:*"):
-        redisData = redisDB.lrange(key, 0, -1)
-        pathCSV = redisData[PATH_POS]
-        asinCSV = redisData[ASIN_POS]
-        outputWriter.writerow([pathCSV, asinCSV])
-        redisDB.delete(key) #delete the key now useless
-    #close the csv for this page
-    csvFile.close()
-
 
 
 for page in range (0, NB_PAGES_TO_DOWNLOAD): #download NB_PAGES_TO_DOWNLOAD pages
@@ -144,7 +128,8 @@ for page in range (0, NB_PAGES_TO_DOWNLOAD): #download NB_PAGES_TO_DOWNLOAD page
     redisPipeline.execute()
     redisDB.save()
 
-    saveScrapedPageToCSV(redisDB) #will also delete the rediskeys
+    #saveScrapedPageToCSV(redisDB) #will also delete the rediskeys 
+    #(will be done after enrichment in automated classifier
 
 
     print('Page ' +str(page+1)+ ' Scraped !')
