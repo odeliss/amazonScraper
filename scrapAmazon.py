@@ -85,12 +85,10 @@ def saveImageToDisk(index, soupObject, redisPipeline):
             imageFile.write(chunk)
         imageFile.close()
 
-    #store the image path and corresponding ASIN in the redis pipeline
+    #store the image path and corresponding "AMZ" + ASIN in the redis pipeline
     if asin != 'NA' and pathImage!= 'NA':
-        redisPipeline.rpush("path:{}".format(pathImage), asin)
-        #better to encode otherwize there is a 'b' coming before in the file
-        #source: http://stackoverflow.com/questions/25745053/about-char-b-prefix-in-python3-4-1-client-connect-to-redis
-
+        redisPipeline.rpush("path:{}".format(pathImage), "AMZ"+str(asin))
+        
 
 def getNextPage():
     selector = "#pagnNextLink"
