@@ -17,15 +17,31 @@ from redis import Redis
 import csv
 
 
+
 #will work better when connecting on avast secure line
 #altenative is to implement a rotating public proxy
 #doc: http://www.doc.ic.ac.uk/~pg1712/blog/python-proxy/
 
-#0.0 ---- define some parameters
-#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=montres'
-url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=citizen'
+#0.0 ---- define some parameters #need to rotate the proxy from time to time. Try with american ones
+url = "https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords='montres'"
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=Daniel+Wellington'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=casio' 
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=citizen'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=festina'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=fossil'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=michael+kors'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=bulova' 
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=invicta'  
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=timex' 
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=tommy+hilfiger'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=boss' 
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=stuhrling+original'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=ice+watch'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=guess'
+
+
 directoryImages = Path("D:/Users/olivi/ComputerVision/amazonScraper/rawImages/_")
-NB_PAGES_TO_DOWNLOAD = 1
+NB_PAGES_TO_DOWNLOAD = 10
 REDIS_PORT = 6379
 ASIN_POS = 0 #location in the redisDB of the ASIN
 
@@ -54,21 +70,47 @@ def getPageContent(url, userAgent = None, reqTimeout = 20):
         pass
     return(res)
 
+def extractSoupSelector(soupObject, selector, attributeToExtract):
+    #return the content of an attribute extracted from a selector
+    extractedItem=[]
+    
+    extractedItem = soupObject.select(selector)
+    if extractedItem == []:
+        print("Could not find an element with selector." + str(selector))
+        return('NA')
+    else: 
+        return(extractedItem[0].get(attributeToExtract))
+
+
 def saveImageToDisk(index, soupObject, redisPipeline):
     #Use chrome F12 - right click - copy selector on the element
     selector = "#result_"+str(index)+" > div > div.a-row.a-spacing-base > div > div > a > img"
     asinSelector = "#result_"+str(index)
+    watchTitleSelector = "#result_"+str(index)+" > div > div.a-row.a-spacing-base > div > div > a"
     asin = 'NA'
     pathImage = 'NA'
     pictureUrl= ""
+    title ='NA'
 
     #Extract the ASIN
+    asin = extractSoupSelector(soupObject, asinSelector, 'data-asin')
+    print("ASIN.{}\n".format(asin))
+
+    '''
     asin = soupObject.select(asinSelector)
     if asin == []:
         print("Could not find an element with asin selector." + str(asinSelector))
     else: #get the asin
         asin=asin[0].get('data-asin')
+    '''
 
+    #Extract the TITLE - 4 elements in the href 
+    title = extractSoupSelector(soupObject, watchTitleSelector, 'href')
+    if title != 'NA':
+        title= title.split("/")[3]
+        print("TITLE.{}\n".format(title))
+
+    
     #Extract the image path,
     element =  soupObject.select(selector)
 
@@ -86,8 +128,8 @@ def saveImageToDisk(index, soupObject, redisPipeline):
         imageFile.close()
 
     #store the image path and corresponding "AMZ" + ASIN in the redis pipeline
-    if asin != 'NA' and pathImage!= 'NA':
-        redisPipeline.rpush("path:{}".format(pathImage), "AMZ"+str(asin))
+    if asin != 'NA' and pathImage!= 'NA' and title != 'NA':
+        redisPipeline.rpush("path:{}".format(pathImage), "AMZ"+str(asin), title)
         
 
 def getNextPage():
