@@ -23,13 +23,13 @@ import csv
 #doc: http://www.doc.ic.ac.uk/~pg1712/blog/python-proxy/
 
 #0.0 ---- define some parameters #need to rotate the proxy from time to time. Try with american ones
-url = "https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords='montres'"
+#url = "https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords='montres'"
 #url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=Daniel+Wellington'
-#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=casio' 
-#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=citizen'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=casio' #works from melbourne
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=citizen' #works in helsinki
 #url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=festina'
 #url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=fossil'
-#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=michael+kors'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=michael+kors' #works from melbourne
 #url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=bulova' 
 #url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=invicta'  
 #url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=timex' 
@@ -37,13 +37,30 @@ url = "https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords='montre
 #url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=boss' 
 #url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=stuhrling+original'
 #url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=ice+watch'
-#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=guess'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=guess' #works in Frankfurt
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=rado' 
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=breitling' 
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=montblanc'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=longines'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=seiko'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=puma'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=suunto'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=curren'
+#url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=tissot'
+url = 'https://www.amazon.fr/s/url=search-alias%3Dwatches&field-keywords=omega'
+
+NB_ITEMS_PAGE = 49 #for watches category
+#****electronics category*****
+#url = 'https://www.amazon.fr/s/url=search-alias%3Delectronics&field-keywords=garmin' #works in miami
+#url = 'https://www.amazon.fr/s/url=search-alias%3Delectronics&field-keywords=polar' #works in miami
+#NB_ITEMS_PAGE = 25 #for electronics category
 
 
 directoryImages = Path("D:/Users/olivi/ComputerVision/amazonScraper/rawImages/_")
 NB_PAGES_TO_DOWNLOAD = 10
 REDIS_PORT = 6379
 ASIN_POS = 0 #location in the redisDB of the ASIN
+
 
 
 #the following function get an url and return the request object
@@ -84,9 +101,9 @@ def extractSoupSelector(soupObject, selector, attributeToExtract):
 
 def saveImageToDisk(index, soupObject, redisPipeline):
     #Use chrome F12 - right click - copy selector on the element
-    selector = "#result_"+str(index)+" > div > div.a-row.a-spacing-base > div > div > a > img"
+    selector = "#result_"+str(index)+" > div > div.a-row.a-spacing-base > div > a > img"
     asinSelector = "#result_"+str(index)
-    watchTitleSelector = "#result_"+str(index)+" > div > div.a-row.a-spacing-base > div > div > a"
+    watchTitleSelector = "#result_"+str(index)+" > div > div.a-row.a-spacing-base > div > a"
     asin = 'NA'
     pathImage = 'NA'
     pictureUrl= ""
@@ -94,7 +111,7 @@ def saveImageToDisk(index, soupObject, redisPipeline):
 
     #Extract the ASIN
     asin = extractSoupSelector(soupObject, asinSelector, 'data-asin')
-    print("ASIN.{}\n".format(asin))
+    #print("ASIN.{}\n".format(asin))
 
     '''
     asin = soupObject.select(asinSelector)
@@ -108,7 +125,7 @@ def saveImageToDisk(index, soupObject, redisPipeline):
     title = extractSoupSelector(soupObject, watchTitleSelector, 'href')
     if title != 'NA':
         title= title.split("/")[3]
-        print("TITLE.{}\n".format(title))
+        #print("TITLE.{}\n".format(title))
 
     
     #Extract the image path,
@@ -118,7 +135,7 @@ def saveImageToDisk(index, soupObject, redisPipeline):
         print("Could not find an element with selector." + str(selector))
     else: #get image path
         pictureUrl = element[0].get('src')
-        print('{0} - Downloading image {1}...'.format(str(index),pictureUrl))
+        #print('{0} - Downloading image {1}...'.format(str(index),pictureUrl))
         image=getPageContent(pictureUrl, True) #get the picture with random UA and 5s timeout
         #save the images to the imagedirectory
         pathImage = str(directoryImages)+pictureUrl[49:60]+".jpg"
@@ -155,8 +172,8 @@ for page in range (0, NB_PAGES_TO_DOWNLOAD): #download NB_PAGES_TO_DOWNLOAD page
     #There are 50 elements per page, loop 50 triggering 50 times
 
     saveThreads=[]
-    for i in range(0, 48):
-        index=  page * 48 + i 
+    for i in range(0, NB_ITEMS_PAGE - 1):
+        index=  page * (NB_ITEMS_PAGE - 1) + i 
         #save the image to the disk AND save scraped data to the Redis pipeline
         saveThread=threading.Thread(target=saveImageToDisk, args=(index, soup, redisPipeline )) 
         saveThreads.append(saveThread)
@@ -178,7 +195,7 @@ for page in range (0, NB_PAGES_TO_DOWNLOAD): #download NB_PAGES_TO_DOWNLOAD page
     try:
         url=getNextPage()
     except Exception as error:
-        print("Waiting 15s because of error: " + str(error.__doc__)+ str(error.message))
+        print("Waiting 15s because of error: ")
         time.sleep(15) #wait for the connection to be back or button to appear
         url=getNextPage()
     
