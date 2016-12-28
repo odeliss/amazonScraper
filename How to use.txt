@@ -1,20 +1,29 @@
 How to use
 
-(1) Start a proxy will help anonymize your visit
+(1) Some prerequisites
+	a. Start a proxy will help anonymize your visit
+	b. Start redis server on port 6379 (standard)
+		D:\Program Files\Redis\redis-server.exe as administrator 
+
 
 (2) Scrap the images and corresponding info with following command
 	a. python scrapAmazon.py
 	b. change first the param url in the script itself
 	c. clear the rawImages directory
+	d. image path, AMZ ref and title will be pushed in the redis pipeline, extracted later and stored in the DB by the classifier
+	e. check that all images created in raw directory are really images --> sometimes a blob is saved (len>0)
+	f. sometimes the selector changes , just verify in the browser if it corresponds
 
 (3) Run the classifier to sort the watches from the other stuff
 	a. Make sure the directories are correct (hardcoded in script)
 	b. Run automatedClassification.py script
-	c. Watches will be stored in the \watches directory
-	d. Others will be stored in the \notwatches directory
+	c. Watches will be stored in the \watches directory - CLEAR IT
+	d. Others will be stored in the \notwatches directory -) CLEAR IT
 	e. Display the \notwatches directory per « grandes icones » and cut/paste the missed watches in the \dataset and \watches directory
 	f. Rename the pasted image
 	g. Do the same with the \watches directory
+	h. The details of the watches are stored in images.csv file in the \watches directory	
+(4) move the watches directory to pyimagesearch2\dataset\watches
 
 <<FOLLOWING STEPS ARE DEPRECATED AND REPLACED BY BOVW ALGORITHM>>
 (4) Run the indexer to create the indexWatches.csv that will index the newly added watches
